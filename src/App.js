@@ -40,7 +40,9 @@ function RootStack(props) {
 
   React.useEffect(() => {
     localStorage.setItem("selectedProject", selectedProject);
-    setRootStack(projects[selectedProject].stackName);
+    const stackName = get(projects, [selectedProject, "stackName"]);
+    console.log(">>src/App::", "stackName", stackName); //TRACE
+    if (stackName) setRootStack(projects[selectedProject].stackName);
   }, [selectedProject]);
 
   // const { data, loading } = useQuery(listStackResources(), {
