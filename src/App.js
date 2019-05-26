@@ -3,12 +3,15 @@ import logo from "./logo.svg";
 import "./App.css";
 import CredInput from "./components/CredInput";
 import TextField from "@material-ui/core/TextField";
+import Button from "@material-ui/core/Button";
 import MenuItem from "@material-ui/core/MenuItem";
 import { useQuery, useApolloClient } from "react-apollo-hooks";
 import listStackResources from "./common/listStackResources";
 
 import merge from "lodash/fp/merge";
 import get from "lodash/get";
+import debounce from "lodash/debounce";
+import StackResources from "./components/StackResource";
 
 setGlobal({
   creds: {
@@ -16,116 +19,59 @@ setGlobal({
     secretAccessKey: localStorage.getItem("secretAccessKey"),
     region: localStorage.getItem("region")
   },
-  selectedProject: localStorage.getItem("selectedProject"),
-  rootStackName: null,
-  resourceMap: {},
-  projects: {
-    ie: {
-      name: "Incentive Employment",
-      stackName: "incentiveemployment-uat-20190518192214"
-    }
+  search: {
+    text: "resolver"
   },
+  selectedProject: localStorage.getItem("selectedProject"),
+  rootStackName: localStorage.getItem("rootStackName"),
+  resourceMap: {},
   disabled: false,
   initial: "values",
   x: 1
 });
 
 function RootStack(props) {
-  const [rootStack, setRootStack] = useGlobal("rootStack");
-  const [selectedProject, setSelectedProject] = useGlobal("selectedProject");
+  const [rootStack, setRootStack] = useGlobal("rootStackName");
   const [resourceMap, setResourceMap] = useGlobal("resourceMap");
-  const [projects] = useGlobal("projects");
-  const [creds] = useGlobal("creds");
-  const { accessKeyId, secretAccessKey, region } = creds;
+  const [search, setSearch] = useGlobal("search");
+  // const [creds] = useGlobal("creds");
 
-  React.useEffect(() => {
-    localStorage.setItem("selectedProject", selectedProject);
-    const stackName = get(projects, [selectedProject, "stackName"]);
-    console.log(">>src/App::", "stackName", stackName); //TRACE
-    if (stackName) setRootStack(projects[selectedProject].stackName);
-  }, [selectedProject]);
-
-  // const { data, loading } = useQuery(listStackResources(), {
-  //   variables: {
-  //     StackName: rootStack
-  //   }
-  // });
-  // console.log(">>src/App::", "data", data); //TRACE
   const client = useApolloClient();
-  console.log(">>src/App::", "resourceMap", resourceMap); //TRACE
-  React.useEffect(() => {
-    let unmounted = false;
-    if (!rootStack) return;
-    console.log(">>src/App::", "rootStack", rootStack); //TRACE
 
-    async function fetchResource(StackName) {
-      let NextToken;
-      do {
-        const ret = await client.query({
-          query: listStackResources(),
-          variables: {
-            StackName,
-            NextToken
-          }
-        });
-        NextToken = get(
-          ret,
-          "data.cloudformation.listStackResources.NextToken"
-        );
-        console.log(">>src/App::", "NextToken", NextToken); //TRACE
-        console.log(">>src/App::", "ret", ret); //TRACE
-        const resources = get(
-          ret,
-          "data.cloudformation.listStackResources.StackResourceSummaries"
-        );
+  const onResetCache = React.useCallback(async () => {
+    await client.cache.reset();
+  }, []);
 
-        const rscMap = {};
-        resources.forEach(rsc => {
-          if (rsc.ResourceType === "AWS::CloudFormation::Stack") {
-            //dive to child stack
-            // ("arn:aws:cloudformation:ap-southeast-2:265681005590:stack/incentiveemployment-uat-20190518192214-functionEmail-K8RIRUXQKJIF/72b77660-7963-11e9-9eb3-068b7cc31228");
-            const stackIdSplit = rsc.PhysicalResourceId.split("/");
-            const [, stackName] = stackIdSplit;
-            console.log(">>src/App::", "stackIdSplit", stackIdSplit); //TRACE
-            fetchResource(stackName);
-            return;
-          }
-          rscMap[rsc.LogicalResourceId] = rsc;
-        });
-
-        if (unmounted) return;
-
-        setResourceMap(merge(rscMap)(getGlobal().resourceMap));
-        console.log(">>src/App::", "resources", resources); //TRACE
-      } while (NextToken !== null);
-    }
-    fetchResource(rootStack);
-    return () => {
-      unmounted = true;
-    };
-  }, [rootStack]);
-
+  const updateSearchText = debounce(txt => {
+    setSearch({ text: txt });
+  }, 250);
+  const handleSearchText = React.useCallback(e => {
+    const { value } = e.target;
+    updateSearchText(value);
+  }, []);
   return (
     <div>
       <TextField
-        label="Project"
-        select
+        label="Root Stack"
         style={{ width: 200 }}
-        value={selectedProject || ""}
+        value={rootStack || ""}
         onChange={e => {
-          setSelectedProject(e.target.value);
+          const { value } = e.target;
+          localStorage.setItem("rootStackName", value);
+          setRootStack(value);
         }}
-      >
-        {Object.entries(projects).map(e => {
-          const [key, project] = e;
-          const { name } = project;
-          return (
-            <MenuItem key={key} value={key}>
-              {name}
-            </MenuItem>
-          );
-        })}
-      </TextField>
+      />
+      <div style={{ margin: 20 }}>
+        <TextField
+          label="Search"
+          style={{ width: 200 }}
+          onChange={handleSearchText}
+        />
+        <Button variant="contained" onClick={onResetCache}>
+          Reset Cache{" "}
+        </Button>
+        <StackResources resource={{ PhysicalResourceId: rootStack }} />
+      </div>
     </div>
   );
 }

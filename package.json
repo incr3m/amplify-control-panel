@@ -12,8 +12,6 @@
     "apollo-link-schema": "^1.2.2",
     "aws-amplify": "^1.1.28",
     "aws-appsync": "^1.8.0",
-    "aws-sdk": "^2.459.0",
-    "express-graphql": "^0.8.0",
     "graphql": "^14.3.0",
     "graphql-compose": "^7.0.2",
     "graphql-compose-aws": "^4.0.0",
@@ -25,12 +23,21 @@
     "react-apollo-hooks": "^0.4.5",
     "react-dom": "^16.8.6",
     "react-scripts": "3.0.1",
+    "react-simple-code-editor": "^0.9.10",
     "reactn": "^2.0.1"
   },
+  "devDependencies": {
+    "aws-sdk": "^2.463.0",
+    "express-graphql": "^0.8.0",
+    "npm-run-all": "^4.1.5"
+  },
+  "proxy": "http://localhost:3001",
   "scripts": {
     "postinstall": "rm node_modules/graphql-compose-aws/mjs -rf && rm node_modules/graphql-compose/mjs -rf",
     "start": "react-scripts start",
     "build": "react-scripts build",
+    "dev": "run-p start server",
+    "server": "node server",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },

@@ -1,15 +1,10 @@
 const { AwsApiParser } = require("graphql-compose-aws");
-const {
-  makeExecutableSchema,
-  addMockFunctionsToSchema
-} = require("graphql-tools");
 const { GraphQLSchema, GraphQLObjectType } = require("graphql");
-const { awsServices } = require("./../config");
+const awsSDK = require("aws-sdk");
 const fromPairs = require("lodash/fromPairs");
-
-console.log("testaws", window.AWS);
+const { awsServices } = require("../src/config");
 const awsApiParser = new AwsApiParser({
-  awsSDK: window.AWS
+  awsSDK
 });
 
 const services = awsServices;
@@ -25,12 +20,5 @@ const schema = new GraphQLSchema({
     )
   })
 });
-
-// const schema = new GraphQLSchema({
-//   query: new GraphQLObjectType({
-//     name: "RootQueryType",
-//     fields: {}
-//   })
-// });
 
 module.exports = { schema };
