@@ -1,9 +1,10 @@
 module.exports = {
-  GRAPHQL_ENDPOINT: '/graphql',
+  GRAPHQL_ENDPOINT: "/graphql",
   awsServices: [
     // "S3",
     "Amplify",
     "AppSync",
+    "DynamoDB",
     "CognitoIdentityServiceProvider",
     "Lambda",
     "CloudFormation"

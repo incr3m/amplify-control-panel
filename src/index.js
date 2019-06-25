@@ -3,12 +3,15 @@ import ReactDOM from "react-dom";
 import "./index.css";
 import App from "./App";
 import * as serviceWorker from "./serviceWorker";
-import { ApolloProvider } from 'react-apollo-hooks';
+import { ApolloProvider } from "react-apollo-hooks";
+import { SnackbarProvider } from "notistack";
 import { client } from "./common/apollo";
 
 const AppWrapper = () => (
   <ApolloProvider client={client}>
-    <App />
+    <SnackbarProvider>
+      <App />
+    </SnackbarProvider>
   </ApolloProvider>
 );
 

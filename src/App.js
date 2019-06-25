@@ -12,6 +12,7 @@ import merge from "lodash/fp/merge";
 import get from "lodash/get";
 import debounce from "lodash/debounce";
 import StackResources from "./components/StackResource";
+import { TaskPoller } from "./hooks/useTaskThrottler";
 
 setGlobal({
   creds: {
@@ -20,7 +21,7 @@ setGlobal({
     region: localStorage.getItem("region")
   },
   search: {
-    text: "resolver"
+    text: ""
   },
   selectedProject: localStorage.getItem("selectedProject"),
   rootStackName: localStorage.getItem("rootStackName"),
@@ -79,6 +80,7 @@ function RootStack(props) {
 function App() {
   return (
     <div className="App">
+      <TaskPoller />
       <CredInput />
       <RootStack />
     </div>

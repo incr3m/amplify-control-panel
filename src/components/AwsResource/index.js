@@ -1,6 +1,7 @@
 import React, { useGlobal } from "reactn";
 import StackResource from "../StackResource";
 import AppSyncResolverResource from "../AppSyncResolverResource";
+import DynamoDBTableResource from "../DynamoDBTableResource";
 
 function DefaultResource({ resource, onLoad, paused }) {
   React.useEffect(() => {
@@ -11,18 +12,6 @@ function DefaultResource({ resource, onLoad, paused }) {
     LogicalResourceId = "Root",
     PhysicalResourceId: stackName
   } = resource;
-
-  const [searchMatched, setSearchMatched] = React.useState(true);
-  const [search] = useGlobal("search");
-
-  React.useEffect(() => {
-    const { text } = search;
-    setSearchMatched(
-      LogicalResourceId.toLowerCase().indexOf(text.toLowerCase()) > -1
-    );
-  }, [search]);
-
-  if (!searchMatched) return null;
 
   return (
     <div>
@@ -40,21 +29,40 @@ export default function AwsResource(props) {
     __typename
   } = resource;
 
-  let Resource;
+  const [searchMatched, setSearchMatched] = React.useState(true);
+  const [search] = useGlobal("search");
+
+  React.useEffect(() => {
+    const { text } = search;
+    if (text.length < 1) return;
+    setSearchMatched(
+      LogicalResourceId.toLowerCase().includes(text.toLowerCase()) ||
+        PhysicalResourceId.toLowerCase().includes(text.toLowerCase())
+    );
+  }, [search]);
+
+  const handleOnLoad = React.useCallback((opts = {}) => {
+    onLoad && onLoad({ ...opts, resourceIndex });
+  }, []);
+
+  let Resource,
+    searchable = true;
   switch (ResourceType) {
     case "AWS::CloudFormation::Stack":
       Resource = StackResource;
+      searchable = false;
       break;
     case "AWS::AppSync::Resolver":
       Resource = AppSyncResolverResource;
+      break;
+    case "AWS::DynamoDB::Table":
+      Resource = DynamoDBTableResource;
       break;
     default:
       Resource = DefaultResource;
   }
 
-  const handleOnLoad = React.useCallback((opts = {}) => {
-    onLoad && onLoad({ ...opts, resourceIndex });
-  }, []);
+  if (!searchMatched && searchable) return null;
 
   return <Resource {...props} onLoad={handleOnLoad} />;
 }

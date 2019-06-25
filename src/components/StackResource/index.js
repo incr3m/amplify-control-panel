@@ -1,23 +1,52 @@
-import React, { useGlobal } from "reactn";
+import React, { useGlobal, getGlobal } from "reactn";
 import listStackResources from "../../common/listStackResources";
 import Paper from "@material-ui/core/Paper";
+import Promise from "bluebird";
 import Divider from "@material-ui/core/Divider";
 import { withStyles } from "@material-ui/core/styles";
-import { useQuery } from "react-apollo-hooks";
+import { useQuery, useApolloClient } from "react-apollo-hooks";
 import AwsResource from "../AwsResource";
 import get from "lodash/get";
 import set from "lodash/fp/set";
 import range from "lodash/range";
+import useTaskThrottler from "../../hooks/useTaskThrottler";
 
 const styles = {
   info: { paddingTop: 10, paddingBottom: 10 }
 };
 
+function Fetcher({ onResult, stackName, nextToken }) {
+  const client = useApolloClient();
+  const task = React.useMemo(() => {
+    return client.query({
+      query: listStackResources(),
+      variables: {
+        StackName: stackName,
+        NextToken: nextToken
+      }
+    });
+    // return Promise.resolve({ data: {} });
+  }, [stackName, nextToken]);
+
+  const { result, waiting: loading, called, rerun: refetch } = useTaskThrottler(
+    {
+      task
+    }
+  );
+  React.useEffect(() => {
+    if (result) {
+      const { data } = result || {};
+      onResult && onResult(data);
+    }
+  }, [result]);
+
+  return null;
+}
+
 export default withStyles(styles)(function StackResource({
   classes,
   resource,
-  onLoad,
-  paused
+  onLoad
 }) {
   const {
     LogicalResourceId = "Root",
@@ -33,55 +62,25 @@ export default withStyles(styles)(function StackResource({
 
   const [searchMatched, setSearchMatched] = React.useState(true);
   const [search] = useGlobal("search");
+  const [, setResourceMap] = useGlobal("resourceMap");
+
+  React.useEffect(() => {
+    const newResourceMap = { ...getGlobal().resourceMap };
+    state.resources.forEach(r => {
+      newResourceMap[r.PhysicalResourceId] = r;
+    });
+    setResourceMap(newResourceMap);
+  }, [state.resources]);
+
   React.useEffect(() => {
     const { text } = search;
     setSearchMatched(
-      LogicalResourceId.toLowerCase().indexOf(text.toLowerCase()) > -1
+      LogicalResourceId.toLowerCase().includes(text.toLowerCase()) ||
+        stackName.toLowerCase().includes(text.toLowerCase())
     );
   }, [search]);
 
-  const { data, loading, fetchMore, refetch } = useQuery(listStackResources(), {
-    variables: {
-      StackName: state.stackName,
-      NextToken: state.nextToken
-    },
-    skip: paused
-  });
-
   React.useEffect(() => {
-    const NextToken = get(data, "cloudformation.listStackResources.NextToken");
-    console.log(">>StackResource/index::", "NextToken", NextToken); //TRACE
-    const resources = get(
-      data,
-      "cloudformation.listStackResources.StackResourceSummaries",
-      []
-    );
-    setState(oldState => ({ ...oldState, resources }));
-  }, [data]);
-
-  const handleOnLoad = React.useCallback(opts => {
-    const { resourceIndex } = opts;
-    // setState(oldState => ({ ...oldState, [resourceIndex]: true }));
-    setState(oldState => {
-      const x = set(`resourceStatus.${resourceIndex}`, true)(oldState);
-      return x;
-    });
-  }, []);
-
-  const currentLoadIndex = React.useMemo(() => {
-    const curIndex = range(state.resources.length).findIndex(index => {
-      return state.resourceStatus[index] !== true;
-    });
-    return curIndex > 0 ? curIndex : 0;
-  }, [state.resourceStatus, state.resources]);
-
-  React.useEffect(() => {
-    console.log(
-      ">>StackResource/index::",
-      "xxx1",
-      state.resources,
-      state.resourceStatus
-    ); //TRACE
     let allLoaded = true;
 
     state.resources.some((rsc, ii) => {
@@ -90,12 +89,27 @@ export default withStyles(styles)(function StackResource({
         return true;
       }
     });
-    console.log(">>StackResource/index::", "xxx22allLoaded", allLoaded); //TRACE
     if (state.resources.length > 0 && allLoaded) onLoad && onLoad();
   }, [state.resources, state.resourceStatus]);
 
+  const onResult = React.useCallback(data => {
+    const NextToken = get(data, "cloudformation.listStackResources.NextToken");
+    console.log(">>StackResource/index::", "NextToken", NextToken); //TRACE
+    const resources = get(
+      data,
+      "cloudformation.listStackResources.StackResourceSummaries",
+      []
+    );
+    setState(oldState => ({ ...oldState, resources }));
+  }, []);
+
   return (
     <>
+      <Fetcher
+        onResult={onResult}
+        stackName={state.stackName}
+        nextToken={state.nextToken}
+      />
       {searchMatched && (
         <Paper className={classes.info}>
           name: {LogicalResourceId}
@@ -104,15 +118,7 @@ export default withStyles(styles)(function StackResource({
         </Paper>
       )}
       {state.resources.map((rsc, ii) => {
-        return (
-          <AwsResource
-            key={ii}
-            resourceIndex={ii}
-            resource={rsc}
-            onLoad={handleOnLoad}
-            paused={ii > currentLoadIndex}
-          />
-        );
+        return <AwsResource key={ii} resourceIndex={ii} resource={rsc} />;
       })}
     </>
   );

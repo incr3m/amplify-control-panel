@@ -5,6 +5,7 @@ import gql from "graphql-tag";
 import { useQuery, useApolloClient } from "react-apollo-hooks";
 import get from "lodash/get";
 import Editor from "react-simple-code-editor";
+import ExpandableResource from "../ExpandableResource";
 
 const saveQuery = gql`
   query($config: AwsConfig!, $input: AwsAppSyncUpdateResolverInput!) {
@@ -174,18 +175,9 @@ export default function AppSyncResolverResource({ resource, onLoad }) {
   const { LogicalResourceId, PhysicalResourceId = "" } = resource;
 
   return (
-    <Paper>
-      <div>
-        {LogicalResourceId}
-        <Button
-          onClick={() =>
-            setState(oldState => ({ ...oldState, expanded: !expanded }))
-          }
-        >
-          {expanded ? "-" : "+"}
-        </Button>
-      </div>
-      {expanded && <ResolverDetails arn={PhysicalResourceId} />}
-    </Paper>
+    <ExpandableResource
+      name={LogicalResourceId}
+      details={<ResolverDetails arn={PhysicalResourceId} />}
+    />
   );
 }
