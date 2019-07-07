@@ -12,12 +12,22 @@ const services = awsServices;
 const schema = new GraphQLSchema({
   query: new GraphQLObjectType({
     name: "Query",
-    fields: fromPairs(
-      services.map(svcRaw => {
-        const svc = svcRaw.toLowerCase();
-        return [svc, awsApiParser.getService(svc).getFieldConfig()];
-      })
-    )
+    fields: {
+      ...fromPairs(
+        services.map(svcRaw => {
+          const svc = svcRaw.toLowerCase();
+          return [svc, awsApiParser.getService(svc).getFieldConfig()];
+        })
+      ),
+      listProfiles: require("./resolvers/ListProfiles"),
+      getProjects: require("./resolvers/GetProjects")
+    }
+  }),
+  mutation: new GraphQLObjectType({
+    name: "Mutation",
+    fields: {
+      useProfile: require("./resolvers/UseProfile")
+    }
   })
 });
 

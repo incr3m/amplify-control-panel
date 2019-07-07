@@ -1,18 +1,11 @@
-import { getGlobal } from "reactn";
 import { gql } from "apollo-boost";
 
 export default () => {
-  const creds = getGlobal().creds;
-  console.log(">>common/listStackResources::", "creds", creds); //TRACE
-  const { accessKeyId, secretAccessKey, region } = creds;
-
   return gql`
-query ($StackName: String!, $NextToken: String) {
+query ($StackName: String!, $NextToken: String, $Region: String!) {
   cloudformation(
     config: {
-      accessKeyId: "${accessKeyId}"
-      secretAccessKey: "${secretAccessKey}"
-      region: "${region}"
+      region: $Region
     }
   ) {
     listStackResources(

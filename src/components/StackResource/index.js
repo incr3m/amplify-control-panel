@@ -10,23 +10,24 @@ import get from "lodash/get";
 import set from "lodash/fp/set";
 import range from "lodash/range";
 import useTaskThrottler from "../../hooks/useTaskThrottler";
+import useWorkspace from "../../hooks/useWorkspace";
 
 const styles = {
   info: { paddingTop: 10, paddingBottom: 10 }
 };
 
-function Fetcher({ onResult, stackName, nextToken }) {
+function Fetcher({ onResult, stackName, region, nextToken }) {
   const client = useApolloClient();
   const task = React.useMemo(() => {
     return client.query({
       query: listStackResources(),
       variables: {
         StackName: stackName,
-        NextToken: nextToken
+        NextToken: nextToken,
+        Region: region
       }
     });
-    // return Promise.resolve({ data: {} });
-  }, [stackName, nextToken]);
+  }, [region, stackName, nextToken]);
 
   const { result, waiting: loading, called, rerun: refetch } = useTaskThrottler(
     {
@@ -53,9 +54,7 @@ export default withStyles(styles)(function StackResource({
     PhysicalResourceId: stackName
   } = resource;
   const [state, setState] = React.useState({
-    // nextToken: null,
     stackName,
-    //stackName: "incentiveemployment-20190415075708-apiIncentiveEmployment-198U880ZN9V67",
     resources: [],
     resourceStatus: {}
   });
@@ -63,6 +62,12 @@ export default withStyles(styles)(function StackResource({
   const [searchMatched, setSearchMatched] = React.useState(true);
   const [search] = useGlobal("search");
   const [, setResourceMap] = useGlobal("resourceMap");
+  const { projectState, env } = useWorkspace();
+  const region = get(
+    projectState,
+    `selectedProject.envs.${env}.awscloudformation.Region`
+  );
+  console.log(">>StackResource/index::", "Region", region); //TRACE
 
   React.useEffect(() => {
     const newResourceMap = { ...getGlobal().resourceMap };
@@ -105,11 +110,15 @@ export default withStyles(styles)(function StackResource({
 
   return (
     <>
-      <Fetcher
-        onResult={onResult}
-        stackName={state.stackName}
-        nextToken={state.nextToken}
-      />
+      {region && (
+        <Fetcher
+          onResult={onResult}
+          stackName={state.stackName}
+          nextToken={state.nextToken}
+          region={region}
+        />
+      )}
+
       {searchMatched && (
         <Paper className={classes.info}>
           name: {LogicalResourceId}
