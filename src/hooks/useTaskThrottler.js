@@ -22,6 +22,16 @@ function PollerInfo() {
   );
 }
 
+export function useTaskPollerActions() {
+  return {
+    clear() {
+      TaskThrottlerProvider.setGlobal({
+        queue: []
+      });
+    }
+  };
+}
+
 export function TaskPoller({ throttle = 1000 }) {
   if (taskPollerCount > 1) throw new Error("Task Poller Should be unique");
 

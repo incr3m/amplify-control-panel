@@ -10,7 +10,7 @@ import get from "lodash/get";
 import set from "lodash/fp/set";
 import range from "lodash/range";
 import useTaskThrottler from "../../hooks/useTaskThrottler";
-import useWorkspace from "../../hooks/useWorkspace";
+import { WorkspaceContext } from "../../contexts/Workspace";
 
 const styles = {
   info: { paddingTop: 10, paddingBottom: 10 }
@@ -62,13 +62,10 @@ export default withStyles(styles)(function StackResource({
   const [searchMatched, setSearchMatched] = React.useState(true);
   const [search] = useGlobal("search");
   const [, setResourceMap] = useGlobal("resourceMap");
-  const { projectState, env } = useWorkspace();
-  const region = get(
-    projectState,
-    `selectedProject.envs.${env}.awscloudformation.Region`
+  const { projectState, env, currentRegion } = React.useContext(
+    WorkspaceContext
   );
-  console.log(">>StackResource/index::", "Region", region); //TRACE
-
+  const region = currentRegion;
   React.useEffect(() => {
     const newResourceMap = { ...getGlobal().resourceMap };
     state.resources.forEach(r => {
@@ -119,13 +116,13 @@ export default withStyles(styles)(function StackResource({
         />
       )}
 
-      {searchMatched && (
+      {/* {searchMatched && (
         <Paper className={classes.info}>
           name: {LogicalResourceId}
           <Divider />
           resources: {state.resources.length}
         </Paper>
-      )}
+      )} */}
       {state.resources.map((rsc, ii) => {
         return <AwsResource key={ii} resourceIndex={ii} resource={rsc} />;
       })}

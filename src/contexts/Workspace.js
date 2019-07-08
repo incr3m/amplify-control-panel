@@ -1,12 +1,13 @@
-import React, { createProvider } from "reactn";
-// import { useQuery } from "@apollo/react-hooks";
-import { useApolloClient } from "@apollo/react-hooks";
+import React from "react";
 import get from "lodash/get";
 import gql from "graphql-tag";
-import keyBy from "lodash/keyBy";
-import useProjectSelector from "./useProjectSelector";
+import useProjectSelector from "../hooks/useProjectSelector";
+import { useApolloClient } from "@apollo/react-hooks";
+import { useTaskPollerActions } from "../hooks/useTaskThrottler";
 
-export default function useWorkspace() {
+export const WorkspaceContext = React.createContext();
+
+export function WorkspaceProvider(props) {
   const [state, setState] = React.useState({
     env: "dev",
     currentProfile: null
@@ -39,11 +40,32 @@ export default function useWorkspace() {
     }
   }, [state.env, projectState.selectedProject]);
 
-  return {
+  const currentRegion = React.useMemo(() => {
+    return get(
+      projectState,
+      `selectedProject.envs.${state.env}.awscloudformation.Region`
+    );
+  }, [projectState, state.env]);
+
+  const creds = React.useMemo(() => {
+    return {
+      region: currentRegion
+    };
+  }, [currentRegion]);
+
+  const value = {
+    creds,
     projectState,
+    currentRegion,
     ...state,
     setEnv(env) {
       setState(oldState => ({ ...oldState, env }));
     }
   };
+
+  return (
+    <WorkspaceContext.Provider value={value}>
+      {props.children}
+    </WorkspaceContext.Provider>
+  );
 }

@@ -20,7 +20,7 @@ function DefaultResource({ resource, onLoad, paused }) {
   );
 }
 
-export default function AwsResource(props) {
+export default React.memo(function(props) {
   const { resource, resourceIndex, onLoad } = props;
   const {
     LogicalResourceId,
@@ -31,15 +31,19 @@ export default function AwsResource(props) {
 
   const [searchMatched, setSearchMatched] = React.useState(true);
   const [search] = useGlobal("search");
+  const [typeFilter] = useGlobal("typeFilter");
 
   React.useEffect(() => {
     const { text } = search;
-    if (text.length < 1) return;
+    if (text.length < 1 && !searchMatched) {
+      setSearchMatched(true);
+      return;
+    }
     setSearchMatched(
       LogicalResourceId.toLowerCase().includes(text.toLowerCase()) ||
         PhysicalResourceId.toLowerCase().includes(text.toLowerCase())
     );
-  }, [search]);
+  }, [search, searchMatched]);
 
   const handleOnLoad = React.useCallback((opts = {}) => {
     onLoad && onLoad({ ...opts, resourceIndex });
@@ -63,6 +67,7 @@ export default function AwsResource(props) {
   }
 
   if (!searchMatched && searchable) return null;
+  if (typeFilter && searchable && typeFilter !== ResourceType) return null;
 
   return <Resource {...props} onLoad={handleOnLoad} />;
-}
+});

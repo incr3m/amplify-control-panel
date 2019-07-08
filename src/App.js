@@ -20,6 +20,7 @@ import { TaskPoller } from "./hooks/useTaskThrottler";
 import Home from "./views/home";
 import ProjectSelector from "./components/ProjectSelector";
 import EnvSelector from "./components/EnvSelector";
+import { WorkspaceProvider } from "./contexts/Workspace";
 
 function App() {
   const headerControls = React.useMemo(() => {
@@ -27,25 +28,27 @@ function App() {
   }, []);
   return (
     <div className="App">
-      <Basket
-        title={"Amplify"}
-        headerControls={headerControls}
-        tabs={[
-          {
-            icon: HomeIcon,
-            path: "/",
-            label: "Dashboard",
-            content: Home
-          },
-          {
-            icon: SettingslIcon,
-            path: "/settings",
-            label: "Settings",
-            content: SettingsPage
-          }
-        ]}
-      />
       <TaskPoller />
+      <WorkspaceProvider>
+        <Basket
+          title={"Amplify"}
+          headerControls={headerControls}
+          tabs={[
+            {
+              icon: HomeIcon,
+              path: "/",
+              label: "Dashboard",
+              content: Home
+            },
+            {
+              icon: SettingslIcon,
+              path: "/settings",
+              label: "Settings",
+              content: SettingsPage
+            }
+          ]}
+        />
+      </WorkspaceProvider>
     </div>
   );
 }

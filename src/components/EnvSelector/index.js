@@ -1,8 +1,8 @@
 import React from "react";
-import useWorkspace from "../../hooks/useWorkspace";
+import { WorkspaceContext } from "../../contexts/Workspace";
 
 export default function EnvSelector() {
-  const { projectState } = useWorkspace();
+  const { projectState } = React.useContext(WorkspaceContext);
   console.log(">>EnvSelector/index::", "selectedProject", projectState); //TRACE
   return null;
 }

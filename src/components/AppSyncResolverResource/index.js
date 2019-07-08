@@ -6,6 +6,7 @@ import { useQuery, useApolloClient } from "react-apollo-hooks";
 import get from "lodash/get";
 import Editor from "react-simple-code-editor";
 import ExpandableResource from "../ExpandableResource";
+import { WorkspaceContext } from "../../contexts/Workspace";
 
 const saveQuery = gql`
   query($config: AwsConfig!, $input: AwsAppSyncUpdateResolverInput!) {
@@ -41,7 +42,8 @@ const resolverQuery = gql`
 function ResolverDetails(props) {
   const { arn } = props;
   const [, apiId, , typeName, , fieldName] = arn.split("/");
-  const [creds] = useGlobal("creds");
+  const { creds } = React.useContext(WorkspaceContext);
+
   const [state, setState] = React.useState({
     mode: "requestMappingTemplate",
     requestMappingTemplate: "",

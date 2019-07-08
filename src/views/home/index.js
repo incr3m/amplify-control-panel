@@ -8,33 +8,40 @@ import { useApolloClient } from "@apollo/react-hooks";
 import merge from "lodash/fp/merge";
 import get from "lodash/get";
 import debounce from "lodash/debounce";
+import Divider from "@material-ui/core/Divider";
 import StackResources from "./../../components/StackResource";
-import useWorkspace from "../../hooks/useWorkspace";
+import { WorkspaceContext } from "../../contexts/Workspace";
+import { useTaskPollerActions } from "../../hooks/useTaskThrottler";
+import ResourceTypes from "./ResourceTypes";
+import SearchBox from "./SearchBox";
 
 setGlobal({
   search: {
     text: ""
   },
-  selectedProject: localStorage.getItem("selectedProject"),
-  rootStackName: localStorage.getItem("rootStackName"),
+  typeFilter: "",
   resourceMap: {},
   disabled: false,
-  initial: "values",
-  x: 1
+  initial: "values"
 });
 
 function RootStack(props) {
-  const [resourceMap, setResourceMap] = useGlobal("resourceMap");
-  const [search, setSearch] = useGlobal("search");
-  const { projectState, currentProfile, env } = useWorkspace();
+  const { projectState, currentProfile, env, currentRegion } = React.useContext(
+    WorkspaceContext
+  );
+
+  const { clear } = useTaskPollerActions();
+
+  React.useEffect(() => {
+    clear();
+    setGlobal({ resourceMap: {} });
+  }, []);
+
   const StackId = get(
     projectState,
     `selectedProject.envs.${env}.awscloudformation.StackId`
   );
-  const Region = get(
-    projectState,
-    `selectedProject.envs.${env}.awscloudformation.Region`
-  );
+  const Region = currentRegion;
   console.log(">>home/index::", "Root Region", Region); //TRACE
   const client = useApolloClient();
 
@@ -42,25 +49,25 @@ function RootStack(props) {
     await client.cache.reset();
   }, []);
 
-  const updateSearchText = debounce(txt => {
-    setSearch({ text: txt });
-  }, 250);
-  const handleSearchText = React.useCallback(e => {
-    const { value } = e.target;
-    updateSearchText(value);
-  }, []);
   if (!currentProfile || !StackId) return "loading...";
   return (
     <div>
       <div style={{ margin: 20 }}>
-        <TextField
+        <div style={{ marginBottom: 20 }}>
+          <Divider />
+          <div style={{ float: "right" }}>
+            <SearchBox />
+          </div>
+          <Divider style={{ clear: "both" }} />
+        </div>
+        {/* <TextField
           label="Search"
           style={{ width: 200 }}
           onChange={handleSearchText}
-        />
-        <Button variant="contained" onClick={onResetCache}>
+        /> */}
+        {/* <Button variant="contained" onClick={onResetCache}>
           Reset Cache{" "}
-        </Button>
+        </Button> */}
         <StackResources resource={{ PhysicalResourceId: StackId }} />
       </div>
     </div>
@@ -68,9 +75,11 @@ function RootStack(props) {
 }
 
 export default function Home() {
+  const { projectState } = React.useContext(WorkspaceContext);
   return (
     <div>
-      <RootStack />
+      <ResourceTypes />
+      <RootStack key={get(projectState, "selectedProject.name", "no-name")} />
     </div>
   );
 }
